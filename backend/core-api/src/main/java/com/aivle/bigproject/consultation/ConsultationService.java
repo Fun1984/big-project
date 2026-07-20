@@ -1,16 +1,16 @@
 package com.aivle.bigproject.consultation;
 
+import com.aivle.bigproject.analysis.AiAnalysisRepository;
 import com.aivle.bigproject.attachment.Attachment;
+import com.aivle.bigproject.common.exception.NotFoundException;
 import com.aivle.bigproject.consultation.dto.ConsultationRequest;
 import com.aivle.bigproject.consultation.dto.ConsultationResponse;
 import com.aivle.bigproject.storage.FileStorageService;
 import com.aivle.bigproject.user.User;
 import com.aivle.bigproject.user.UserService;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional(readOnly = true)
@@ -19,13 +19,16 @@ public class ConsultationService {
     private final ConsultationRepository consultationRepository;
     private final FileStorageService fileStorageService; // 삭제 시 첨부파일을 디스크에서도 지우기 위해 필요
     private final UserService userService; // userId로 실제 User가 있는지 확인하기 위해 필요
+    private final AiAnalysisRepository aiAnalysisRepository; // 삭제 시 딸린 분석 결과도 같이 지우기 위해 필요
 
     public ConsultationService(ConsultationRepository consultationRepository,
                                 FileStorageService fileStorageService,
-                                UserService userService) {
+                                UserService userService,
+                                AiAnalysisRepository aiAnalysisRepository) {
         this.consultationRepository = consultationRepository;
         this.fileStorageService = fileStorageService;
         this.userService = userService;
+        this.aiAnalysisRepository = aiAnalysisRepository;
     }
 
     @Transactional
@@ -55,7 +58,7 @@ public class ConsultationService {
     // 그 엔티티를 FK로 연결할 때 사용함. 반드시 트랜잭션 안에서 호출해야 함.
     public Consultation findById(Long id) {
         return consultationRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "상담을 찾을 수 없습니다: " + id));
+                .orElseThrow(() -> new NotFoundException("상담을 찾을 수 없습니다: " + id));
     }
 
     // 부분 수정: request에서 null이 아닌 필드만 반영. 즉 status만 보내면 title/inputText는 그대로 유지됨.
@@ -83,11 +86,14 @@ public class ConsultationService {
     @Transactional
     public void delete(Long id) {
         Consultation consultation = findById(id);
-        // DB row는 cascade 설정으로 자동 삭제되지만, 디스크에 저장된 실제 파일은
+        // 첨부파일 DB row는 cascade 설정으로 자동 삭제되지만, 디스크에 저장된 실제 파일은
         // JPA가 모르는 영역이라 여기서 직접 하나씩 지워줘야 함
         for (Attachment attachment : consultation.getAttachments()) {
             fileStorageService.delete(attachment.getFileUrl());
         }
+        // AiAnalysis는 Consultation이 컬렉션으로 들고 있지 않아서(단방향 FK) cascade가 안 걸림 —
+        // 여기서 먼저 지워줘야 consultation 삭제 시 FK 제약조건 위반이 안 남
+        aiAnalysisRepository.deleteByConsultationId(id);
         consultationRepository.delete(consultation);
     }
 }
