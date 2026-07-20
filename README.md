@@ -49,8 +49,32 @@ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 또는 cmd에서 실행
 
-### 3. Spring Boot
-IntelliJ에서 `backend/core-api` 폴더 열면 자동 세팅
+### 3. Spring Boot (core-api)
+
+**사전 준비: 로컬 Postgres에 DB 생성**
+```
+createdb bigproject
+```
+(이미 `bigproject` DB가 있으면 생략)
+
+**pgvector는 아직 필요 없음** — `database/postgres/init.sql`(`CREATE EXTENSION vector`)은 유사사건 검색 등
+임베딩 기능이 실제로 코드에 붙기 전까지는 안 돌려도 지금 core-api는 정상 동작합니다. 관련 기능 브랜치가
+머지되면 이 섹션 업데이트 예정.
+
+**실행**
+
+IntelliJ에서 `backend/core-api` 폴더 열면 자동 세팅되고, 터미널로는:
+```
+cd backend/core-api
+gradlew bootRun        # cmd
+.\gradlew bootRun       # PowerShell
+./gradlew bootRun       # Git Bash
+```
+`http://localhost:8080`에서 실행됨. API 문서: [`docs/api.md`](docs/api.md)
+
+**⚠️ `.env`는 core-api엔 안 먹힘**
+`ai-api`는 python-dotenv로 `.env`를 직접 읽지만, Spring Boot는 `.env` 파일을 자동으로 읽지 않습니다.
+`application.yaml`이 `${DB_URL:...}` 형태로 **OS 환경변수**를 참조하는 구조라서, DB 접속 정보를 기본값(`localhost:5432`, `postgres`/`postgres`)과 다르게 쓰려면 `.env` 대신 실제 환경변수를 설정하거나 IntelliJ 실행 설정(Run Configuration)에 넣어야 합니다. 기본값 그대로 쓸 거면 아무것도 안 해도 됩니다.
 
 ## 법률서식 데이터
 용량(약 101MB) 문제로 git 미포함.
@@ -71,4 +95,4 @@ node_modules\.bin\kordoc.cmd patch "서식.hwp" 편집.md -o 결과.hwpx
 - 파싱 시 `images/` 폴더에 이미지 자동 추출 (gitignore 대상)
 
 ## 환경 변수
-`.env.example`을 복사해 `.env` 생성 후 값 입력
+`.env.example`을 복사해 `.env` 생성 후 값 입력 (ai-api용 — core-api는 `.env`를 안 읽음, 위 3번 참고)
