@@ -1,4 +1,26 @@
-node_modules 
-venv 
-.env 
-tree.txt 
+node_modules
+venv
+.env
+tree.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Kordoc 작업 산출물
+images/
+*.hwp
+*.hwpx
+서식.md
+
+# 서식 데이터
+backend/ai-api/data/
+backend/ai-api/outputs/
+
+# Spring Boot
+build/
+.gradle/
+
+# IDE
+.idea/
+.vscode/
