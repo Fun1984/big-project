@@ -1,14 +1,13 @@
 package com.aivle.bigproject.attachment;
 
+import com.aivle.bigproject.common.exception.NotFoundException;
 import com.aivle.bigproject.consultation.Consultation;
 import com.aivle.bigproject.consultation.ConsultationService;
 import com.aivle.bigproject.storage.FileStorageService;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional(readOnly = true)
@@ -41,9 +40,9 @@ public class AttachmentService {
     // (다른 상담의 attachmentId를 URL에 넣어서 접근하는 걸 막기 위함)
     public Attachment findByIdForConsultation(Long consultationId, Long attachmentId) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부파일을 찾을 수 없습니다: " + attachmentId));
+                .orElseThrow(() -> new NotFoundException("첨부파일을 찾을 수 없습니다: " + attachmentId));
         if (!attachment.getConsultation().getId().equals(consultationId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부파일을 찾을 수 없습니다: " + attachmentId);
+            throw new NotFoundException("첨부파일을 찾을 수 없습니다: " + attachmentId);
         }
         return attachment;
     }

@@ -1,12 +1,11 @@
 package com.aivle.bigproject.user;
 
+import com.aivle.bigproject.common.exception.NotFoundException;
 import com.aivle.bigproject.user.dto.UserRequest;
 import com.aivle.bigproject.user.dto.UserResponse;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 // 실제 업무 로직(생성/조회)이 들어가는 계층. Controller는 요청만 받고, 실제 처리는 여기서 함.
 @Service
@@ -44,6 +43,6 @@ public class UserService {
     // 반드시 트랜잭션이 열린 상태에서 호출해야 함 (세션 밖에서 쓰면 에러 남).
     public User findById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다: " + id));
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다: " + id));
     }
 }
