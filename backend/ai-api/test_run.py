@@ -10,7 +10,7 @@
 import json
 from dotenv import load_dotenv
 
-load_dotenv()  # .env의 OPENAI_API_KEY 로드
+load_dotenv()  # .env의 GEMINI_API_KEY 로드
 
 from app.services.llm_client import analyze_consultation
 
