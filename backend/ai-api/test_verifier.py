@@ -76,7 +76,8 @@ if __name__ == "__main__":
 
         print(f"\n  [자동화 등급] {rep['grade']}")
         print(f"  자리표시자: 원본 {rep['placeholders_original']}개 "
-              f"-> 초안 잔존 {rep['placeholders_remaining']}개")
+              f"-> 초안 잔존 {rep['placeholders_remaining']}개 "
+              f"(PII {rep['placeholders_remaining_pii']} / 기타 {rep['placeholders_remaining_other']})")
         print(f"  반영됨({len(rep['reflected'])}): {rep['reflected']}")
         if rep["not_reflected"]:
             print(f"  [!] 반영안됨: {rep['not_reflected']}")

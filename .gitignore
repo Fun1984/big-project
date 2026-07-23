@@ -29,9 +29,12 @@ CLAUDE.md
 
 
 # 오늘 작업 산출물
-backend/ai-api/output/          # 초안·검증결과 (outputs 아니라 output임!)
-backend/ai-api/서식_hwpx/        # 변환된 서식 291개 (용량)
-backend/ai-api/서식/             # 원본 hwp 풀어놓은 폴더
+# 초안·검증결과 (outputs 아니라 output임!)
+backend/ai-api/output/
+# 변환된 서식 291개 (용량)
+backend/ai-api/서식_hwpx/
+# 원본 hwp 풀어놓은 폴더
+backend/ai-api/서식/
 변환결과.json
 *.txt
 

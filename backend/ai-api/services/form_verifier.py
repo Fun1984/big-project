@@ -23,6 +23,25 @@ PLACEHOLDER_PATTERNS = [
 ]
 PLACEHOLDER_RE = re.compile("|".join(PLACEHOLDER_PATTERNS))
 
+# 상담에 원래 없는 정보(주소·전화·주민등록번호 등)는 채울 근거가 없어 정직하게
+# 빈칸으로 남는 게 맞다. 이런 자리는 자동화 등급 산정에서 감점 대상이 아니다.
+PII_LABEL_RE = re.compile(r"주민등록번호|등록기준지|주\s*소|전\s*화|우편번호|생년월일|☎")
+
+
+def _placeholder_breakdown(paragraphs: list) -> tuple:
+    """(전체, PII류 문단의 자리표시자, 그 외 자리표시자) 개수."""
+    total = pii = other = 0
+    for para in paragraphs:
+        n = len(PLACEHOLDER_RE.findall(para))
+        if not n:
+            continue
+        total += n
+        if PII_LABEL_RE.search(para):
+            pii += n
+        else:
+            other += n
+    return total, pii, other
+
 
 def _paragraphs(path) -> list:
     doc = HwpxDocument.open(str(path))
@@ -95,8 +114,8 @@ def verify(original_path, draft_path, extracted: dict) -> dict:
     reflected = [v for v in values if v in draft]
     not_reflected = [v for v in values if v not in draft]
 
-    ph_orig = PLACEHOLDER_RE.findall(orig)
-    ph_draft = PLACEHOLDER_RE.findall(draft)
+    ph_orig_total, ph_orig_pii, ph_orig_other = _placeholder_breakdown(orig_paras)
+    ph_draft_total, ph_draft_pii, ph_draft_other = _placeholder_breakdown(draft_paras)
 
     allowed_dates, allowed_money = _norm_extracted_dates_money(values)
     draft_dates = _dates(draft)
@@ -115,10 +134,12 @@ def verify(original_path, draft_path, extracted: dict) -> dict:
             if core.strip() and core.strip() in draft:
                 example_residue.append(para[:50] + "...")
 
-    remaining_ph = len(ph_draft)
-    if not not_reflected and remaining_ph == 0 and not example_residue:
+    # 등급은 'PII류를 제외한' 잔존 자리표시자만으로 판단한다.
+    # 주소·전화·주민등록번호는 상담에 없으면 원래 못 채우는 게 정상이므로
+    # 감점 대상이 아니다 (있는 정보를 못 채운 것과는 다르다).
+    if not not_reflected and ph_draft_other == 0 and not example_residue:
         grade = "완전"
-    elif reflected and not example_residue and remaining_ph <= max(3, len(ph_orig)//3):
+    elif reflected and not example_residue and ph_draft_other <= max(2, ph_orig_other // 3):
         grade = "부분"
     else:
         grade = "불가"
@@ -127,8 +148,10 @@ def verify(original_path, draft_path, extracted: dict) -> dict:
         "grade": grade,
         "reflected": reflected,
         "not_reflected": not_reflected,
-        "placeholders_original": len(ph_orig),
-        "placeholders_remaining": remaining_ph,
+        "placeholders_original": ph_orig_total,
+        "placeholders_remaining": ph_draft_total,
+        "placeholders_remaining_pii": ph_draft_pii,
+        "placeholders_remaining_other": ph_draft_other,
         "hallucinated_dates": halluc_dates,
         "hallucinated_money": halluc_money,
         "example_residue": example_residue,
