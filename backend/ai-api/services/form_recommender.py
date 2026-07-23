@@ -79,7 +79,7 @@ def recommend(analysis: dict) -> dict:
         f"[서식 후보 목록]\n" + "\n".join(f"- {c['name']}" for c in candidates)
     )
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": RECOMMEND_PROMPT},
             {"role": "user", "content": user_msg},
