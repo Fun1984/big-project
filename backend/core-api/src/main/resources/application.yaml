@@ -12,3 +12,8 @@ spring:
 
 app:
   upload-dir: ${UPLOAD_DIR:./uploads}
+  s3:
+    bucket: aivle-test-ai-34178924
+    region: ap-northeast-2
+    access-key: "임시"
+    secret-key: "임시"
