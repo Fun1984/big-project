@@ -7,7 +7,8 @@ from app.agents.case_analysis.graph import run_case_analysis
 from app.agents.case_analysis.multimodal import get_whisper_model
 from app.agents.rescue_check.graph import eligibility_graph
 from app.agents.rescue_check.modal import EligibilityCheckRequest, EligibilityCheckResponse
-
+from app.agents.missing_check.graph import missing_data_graph
+from app.agents.missing_check.modal import MissingDataCheckRequest, MissingDataCheckResponse
 
 app = FastAPI(title="AI API")
 
@@ -51,3 +52,9 @@ async def analyze_eligibility(payload: EligibilityCheckRequest) -> EligibilityCh
     initial_state = payload.to_consult_fields()
     result_state = await eligibility_graph.ainvoke(initial_state)
     return EligibilityCheckResponse(relief_review_checklist=result_state["relief_review_checklist"])
+
+@app.post("/missing-data/analyze", response_model=MissingDataCheckResponse)
+async def analyze_missing_data(payload: MissingDataCheckRequest) -> MissingDataCheckResponse:
+    initial_state = payload.to_consult_fields()
+    result_state = await missing_data_graph.ainvoke(initial_state)
+    return MissingDataCheckResponse(missing_items=result_state["missing_items"])

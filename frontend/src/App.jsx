@@ -6,9 +6,41 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [text, setText] = useState('')
+
+  const handleGetText = async () => {
+    
+    try {
+      const res = await fetch(`http://localhost:8080/api/users`, {
+      // const res = await fetch(`/api/users`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`,
+        },
+        // body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error('실패');
+      const updatedText = await res.json();
+      setText(updatedText);
+      console.log('text', updatedText);
+    } catch (err) {
+      console.error(err);
+    }
+    
+    
+  }
 
   return (
     <>
+      <button
+          type="button"
+          className="counter"
+          onClick={() => handleGetText()}
+        >
+          localhost:8080/api/users {count}
+      </button>
+
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
@@ -28,6 +60,9 @@ function App() {
         >
           Count is {count}
         </button>
+        
+
+
       </section>
 
       <div className="ticks"></div>
