@@ -40,7 +40,9 @@ OPENAI_API_KEY = _require_env("OPENAI_API_KEY")
 AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-2")
 S3_BUCKET_NAME = _require_env("S3_BUCKET_NAME")
 
-WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "turbo")
+# STT는 프로세스 안에서 whisper를 돌리는 대신 OpenAI 전사 API를 쓴다
+# (app/ai/stt/transcriber.py) - EC2에 GPU가 없어 CPU로 돌리던 것을 옮긴 것.
+STT_API_MODEL = os.environ.get("STT_API_MODEL", "whisper-1")
 
 
 def get_s3_client():

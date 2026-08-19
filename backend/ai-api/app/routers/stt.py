@@ -9,10 +9,10 @@
                               같이 죽는다.
     ai-api(여기)              분석 1단계에서 이미 같은 일을 한다
                               (app/ai/stt/multimodal.extract_text_from_audio_video).
-                              외부 의존이 없다.
+                              GPU에 묶여 있지 않다(OpenAI 전사 API 호출).
 
 파일 업로드는 실시간이 아니고 급하지도 않다. GPU가 필요한 쪽에 묶어 둘 이유가 없어서
-whisper가 이미 있는 이쪽으로 옮겼다. 첨부파일 추출과 같은 모델을 쓰므로 결과도 일관된다.
+전사 기능이 이미 있는 이쪽으로 옮겼다. 첨부파일 추출과 같은 경로를 쓰므로 결과도 일관된다.
 
 가림(마스킹)은 하지 않는다. 8002의 /transcribe는 전사와 가림을 함께 했지만, 그 조합은
 실시간 경로의 사정이었다. 여기서 나온 텍스트는 상담 내용으로 저장되고, 가림은
@@ -44,7 +44,7 @@ async def transcribe(file: UploadFile = File(...)):
                    f"(가능: {', '.join(sorted(ALLOWED_EXTENSIONS))})",
         )
 
-    # whisper는 파일 경로를 받는다(내부에서 ffmpeg를 부른다). 메모리로는 못 넘긴다.
+    # 전사는 로컬 경로를 받는다(내부에서 ffmpeg로 압축/분할한다). 메모리로는 못 넘긴다.
     # 확장자를 유지해야 ffmpeg가 컨테이너를 제대로 고른다.
     tmp_path = None
     try:

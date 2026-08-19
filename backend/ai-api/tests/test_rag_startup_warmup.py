@@ -84,18 +84,12 @@ def test_warm_rag_runtime_loads_embedding_and_collections(
     }
 
 
-def test_lifespan_warms_whisper_and_rag(
+def test_lifespan_warms_rag(
     monkeypatch,
 ):
     import app.main as main
 
     calls = []
-
-    monkeypatch.setattr(
-        main,
-        "get_whisper_model",
-        lambda: calls.append("whisper"),
-    )
 
     monkeypatch.setattr(
         main,
@@ -114,7 +108,6 @@ def test_lifespan_warms_whisper_and_rag(
     )
 
     assert calls == [
-        "whisper",
         "rag",
         "running",
     ]

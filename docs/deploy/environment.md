@@ -57,7 +57,7 @@
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | | 태스크 역할을 쓰면 불필요 |
 | `AWS_REGION` | | 기본 `ap-northeast-2` |
 | `LAW_API_OC` | | 법령 API |
-| `WHISPER_MODEL_SIZE` | | 기본 `turbo` |
+| `STT_API_MODEL` | | 전사에 쓰는 OpenAI 모델. 기본 `whisper-1` |
 
 ## stt-mask-api
 

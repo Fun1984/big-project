@@ -61,7 +61,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:?필요}
       KLAC_GEMINI_MODEL: ${KLAC_GEMINI_MODEL:-gemini-2.5-flash}
       LLM_MODEL: ${LLM_MODEL:-gpt-5.4-mini}
-      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-base}
+      STT_API_MODEL: ${STT_API_MODEL:-whisper-1}
       LAW_API_OC: ${LAW_API_OC:-}
 
       # core-api와 같은 버킷이어야 한다 - core-api가 첨부파일을 올리고 ai-api가

@@ -10,7 +10,8 @@ import re
 import tempfile
 from urllib.parse import urlparse
 
-from app.ai.config import S3_BUCKET_NAME, WHISPER_MODEL_SIZE, get_s3_client
+from app.ai.config import S3_BUCKET_NAME, get_s3_client
+from app.ai.stt.transcriber import transcribe_file
 
 s3 = get_s3_client()
 
@@ -18,20 +19,6 @@ AUDIO_VIDEO_EXTS = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".mp4", ".mov", ".a
 CAPTION_EXTS = {".vtt", ".srt"}
 DOCUMENT_EXTS = {".pdf", ".docx", ".txt", ".md"}
 UNSUPPORTED_DOC_EXTS = {".hwp", ".hwpx"}  # kordoc 파이프라인 연동 필요 (이번 백본 범위 밖)
-
-_whisper_model = None
-
-
-def get_whisper_model():
-    """Whisper 모델은 프로세스당 최초 1회만 로드해서 재사용.
-    FastAPI에서는 요청마다 호출하지 말고 서버 startup 시점에 한 번 미리 불러둘 것."""
-    global _whisper_model
-    if _whisper_model is None:
-        import whisper
-
-        print(f"[whisper] '{WHISPER_MODEL_SIZE}' 모델 로딩 중... (최초 1회, 다소 시간 소요)")
-        _whisper_model = whisper.load_model(WHISPER_MODEL_SIZE)
-    return _whisper_model
 
 
 def determine_file_category(url: str, content_type: str = "") -> str:
@@ -134,9 +121,7 @@ def download_to_temp_from_s3(link: str) -> tuple:
 
 
 def extract_text_from_audio_video(local_path: str) -> str:
-    model = get_whisper_model()
-    result = model.transcribe(local_path, language="ko")
-    return result.get("text", "").strip()
+    return transcribe_file(local_path)
 
 
 def extract_text_from_caption(local_path: str) -> str:

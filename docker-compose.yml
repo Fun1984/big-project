@@ -79,7 +79,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:?필요}
       KLAC_GEMINI_MODEL: ${KLAC_GEMINI_MODEL:-gemini-2.5-flash}
       LLM_MODEL: ${LLM_MODEL:-gpt-5.4-mini}
-      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-base}
+      STT_API_MODEL: ${STT_API_MODEL:-whisper-1}
       LAW_API_OC: ${LAW_API_OC:-}
 
       # 자산(Chroma 색인·서식)을 내려받을 곳. core-api와 같은 버킷이어야 한다 —
