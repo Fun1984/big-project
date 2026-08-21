@@ -21,6 +21,7 @@ import {
   waitForCoreAnalysisJob,
 } from '../../../services/coreApiClientV2.js';
 import { readCachedFormRecommendations } from '../../../services/draftDocumentStore.js';
+import { hasRealClientName } from '../shared/nameCorrection.js';
 import { createRealtimeAudioStream, fetchAvailableAudioCalls } from '../../../services/realtimeAudioStream.js';
 import { useInPersonRecording } from '../../../hooks/useInPersonRecording.js';
 import { caseOptions, computeCaseEmergency, resolveEligibilityFromCase, emergencyReason, levelFromRatio, fitRatioToLevel } from '../shared/caseHelpers.js';
@@ -597,9 +598,16 @@ export function AnalysisWorkbench({ consultations, onCreateConsultation, onUpdat
     if (nextAnalysis.analysisId && nextAnalysis.analysisId !== selectedCase.coreAnalysisId) {
       patch.coreAnalysisId = nextAnalysis.analysisId;
     }
-    if (aiName && !selectedCase.name && selectedCase.nameSource !== 'counselor') {
+    // 빈 값뿐 아니라 화면 문구('이름 미입력')가 이름칸에 들어와 버린 상담도 채웁니다.
+    // 예전 조건(!selectedCase.name)은 그 문구를 '이름이 있다'로 봐서, 서버에서 되살린
+    // 상담은 AI가 이름을 찾아도 영영 못 채웠습니다. 같은 일을 하는 analysisHelpers는
+    // 이미 hasRealClientName을 쓰고 있어서, 두 경로가 서로 다르게 동작했습니다.
+    if (aiName && !hasRealClientName(selectedCase.name) && selectedCase.nameSource !== 'counselor') {
       patch.name = aiName;
       patch.nameSource = 'ai';
+      // 잘못 들었을 수 있어서 확인을 부탁합니다. 저장은 '분석 저장'이든 '상담 저장'이든
+      // 누르는 쪽에서 함께 됩니다(App.jsx notifyAnalysisSaved / saveConsultationTranscript).
+      showToast(`통화에서 이름을 찾았습니다 — '${aiName}'. 맞는지 확인해주세요.`, 'info');
     }
     onUpdateConsultation(selectedCase.id, patch);
 

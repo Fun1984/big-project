@@ -33,6 +33,7 @@ import {
   updateCoreConsultationStatus,
 } from './services/coreApiClientV2.js';
 import { findOngoingCallDraft } from './services/realtimeSessionStore.js';
+import { hasRealClientName } from './pages/workflows/shared/nameCorrection.js';
 
 // 헤더의 '통화 중' 배지에 쓸 사건 라벨·경과 시간을 계산합니다. 배지가 알아야 하는 건 이 두 가지뿐이라
 // realtimeSessionStore가 돌려주는 원시 draft를 화면 문구로 바꾸는 이 변환은 App.jsx 쪽 책임으로 둡니다.
@@ -258,7 +259,12 @@ function DashboardPage({ role, currentUser, onUpdateProfile, onLogout, users, on
               id: nextLocalId,
               caseNo: `C-CORE-${row.id}`,
               coreId: row.id,
-              name: row.clientName || '이름 미입력',
+              // 이름이 없으면 빈 값으로 둡니다. 예전에는 여기서 화면 문구('이름 미입력')를
+              // 그대로 넣었는데, 그러면 그게 데이터가 되어 버립니다 — 이름칸에 글자가
+              // 들어차서 '필수 입력' 경고가 안 뜨고, AI가 이름을 찾아도 '이미 이름이 있다'로
+              // 보여 못 채우고(AnalysisWorkbench), 저장을 누르면 그 문구가 서버에 굳었습니다.
+              // 화면 문구는 보여주는 쪽에서 붙입니다(common.jsx, dashboards.jsx).
+              name: row.clientName || '',
               title: row.title || '제목 미입력',
               // 전화/대면 메모와 각 개인정보 가림본까지 되살립니다. 예전에는 memo에 inputText
               // (두 채널 합본)만 넣어서, 다른 PC나 변호사 계정으로 열면 대면 녹음 결과와
@@ -320,10 +326,19 @@ function DashboardPage({ role, currentUser, onUpdateProfile, onLogout, users, on
     const analysisByCoreId = new Map();
     analysisResults.forEach((result, index) => {
       if (result.status !== 'fulfilled' || !Array.isArray(result.value)) return;
-      const latest = pickLatestCoreAnalysis(result.value);
-      // 상담을 함께 넘겨야 첨부·메모 기반 값(입력자료 구성, 첨부 읽기 결과)이 채워집니다.
-      const hydrated = buildHydratedAnalysis(latest, candidateCases[index]);
-      if (hydrated) analysisByCoreId.set(candidateCases[index].coreId, hydrated);
+      // 한 건에서 예외가 나도 나머지는 살립니다. forEach 안에서 그냥 던지면 반복이
+      // 통째로 멈춰서, 상담 하나 때문에 목록 전체가 '아직 분석 전'이 됐습니다
+      // (실측: mapOutputValidation의 ReferenceError 하나로 5건 전부 복원 실패).
+      try {
+        const latest = pickLatestCoreAnalysis(result.value);
+        // 상담을 함께 넘겨야 첨부·메모 기반 값(입력자료 구성, 첨부 읽기 결과)이 채워집니다.
+        const hydrated = buildHydratedAnalysis(latest, candidateCases[index]);
+        if (hydrated) analysisByCoreId.set(candidateCases[index].coreId, hydrated);
+      } catch (error) {
+        // 조용히 넘기지 않습니다. 이 자리에서 실패하면 화면에는 '분석 전'으로만 보여서
+        // 원인을 찾을 단서가 남지 않습니다.
+        console.error('분석 복원 실패 (coreId ' + candidateCases[index]?.coreId + ')', error);
+      }
     });
     if (!analysisByCoreId.size) return;
 
@@ -693,9 +708,14 @@ function DashboardPage({ role, currentUser, onUpdateProfile, onLogout, users, on
     };
   };
 
-  // "분석 내용 저장"은 ai_analysis 테이블만 건드립니다 — Consultation(상담 원문)은 여기서
-  // 다루지 않습니다(사용자 확인, 2026-08-04). 상담 원문 저장은 별도의 "상담 저장" 버튼
-  // (saveConsultationTranscript, 아래)이 전담합니다.
+  // "분석 내용 저장"은 ai_analysis 테이블과 상담받은 사람 이름까지만 건드립니다.
+  // 상담 원문(메모·받아쓰기)은 여기서 다루지 않습니다(사용자 확인, 2026-08-04) —
+  // 그건 "상담 저장" 버튼(saveConsultationTranscript, 아래)이 전담합니다.
+  //
+  // 이름을 여기에 넣은 이유: 그 이름은 분석이 통화에서 찾아낸 결과물입니다. 분석을
+  // 저장하면서 정작 분석이 찾은 이름은 안 남기면 두 값이 어긋납니다. 실제로 그래서
+  // 화면에는 이름이 보이는데 서버는 빈 값이라, 다시 열면 이름이 사라졌습니다.
+  // 원문을 안 건드린다는 2026-08-04의 취지는 그대로입니다.
   const notifyAnalysisSaved = async (consultation, analysis) => {
     if (!consultation) return { ok: false, message: '상담 정보를 찾을 수 없습니다.' };
     if (!consultation.coreId) return { ok: true, synced: false, message: '로컬 저장 완료' };
@@ -730,6 +750,20 @@ function DashboardPage({ role, currentUser, onUpdateProfile, onLogout, users, on
       setReviews((items) => items.map((item) => (item.id === consultation.id
         ? { ...item, analysis: { ...(item.analysis || {}), ...analysis } }
         : item)));
+      // 분석이 찾은 이름을 상담에도 남깁니다. 실패해도 분석 저장 자체는 성공이므로
+      // 예외로 뒤집지 않고, 이름만 안 남았다는 것을 그대로 알립니다 — 조용히 넘어가면
+      // 상담원은 다 저장된 줄 알고 넘어가고, 다음에 열 때 이름만 없어집니다.
+      if (hasRealClientName(consultation.name)) {
+        try {
+          await updateCoreConsultation(consultation.coreId, { clientName: consultation.name.trim() });
+        } catch (error) {
+          return {
+            ok: true,
+            synced: true,
+            message: `분석 결과는 저장됐지만 이름은 저장하지 못했습니다. '상담 저장'을 눌러주세요. (${error?.message || '원인 불명'})`,
+          };
+        }
+      }
       return { ok: true, synced: true, message: '분석 결과가 저장되었습니다.' };
     } catch (error) {
       return {
@@ -763,7 +797,9 @@ function DashboardPage({ role, currentUser, onUpdateProfile, onLogout, users, on
       // transcript API는 메모 전용이라(TranscriptSaveRequest에 이름 자리가 없음)
       // 이름은 상담 수정 API로 따로 보냅니다. 실패하면 아래 catch로 내려가
       // "저장 실패"가 화면에 뜹니다 — 조용히 넘어가면 상담원은 저장된 줄 압니다.
-      if (consultation.name?.trim()) {
+      // 진짜 이름일 때만 보냅니다. 화면 문구('이름 미입력')가 이 자리로 돌아와 저장되면
+      // 서버 값이 빈 값이 아니게 되어, 그 뒤로는 AI가 이름을 찾아도 채우지 못합니다.
+      if (hasRealClientName(consultation.name)) {
         await updateCoreConsultation(consultation.coreId, {
           clientName: consultation.name.trim(),
         });
